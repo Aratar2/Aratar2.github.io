@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bombombini Gusini</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+<script>
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        backgroundColor: '#87CEEB',
+        background: null,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                debug: false
+            }
+        },
+        scene: {
+            preload,
+            create,
+            update
+        }
+    };
+
+    const game = new Phaser.Game(config);
+
+    let goose, bombs, crocs, clouds, scoreText, missesText, gameOverText;
+    let score = 0;
+    let misses = 0;
+    let gameOver = false;
+
+    function preload() {
+        this.load.audio('bgm', 'music.mp3');
+        this.load.image('mute', 'mute.png');
+        this.load.image('unmute', 'unmute.png');
+        this.load.image('goose', 'goose_sprite.png');
+        this.load.image('cloud', 'cloud_sprite.png');
+        this.load.image('bomb', 'https://labs.phaser.io/assets/particles/yellow.png');
+        this.load.image('croc', 'crocodile_sprite.png');
+    }
+
+    function create() {
+        this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
+        this.bgm.play();
+
+        this.isMuted = false;
+        this.muteButton = this.add.image(770, 30, 'unmute').setInteractive().setScale(0.5).setScrollFactor(0);
+        this.muteButton.on('pointerdown', () => {
+            this.isMuted = !this.isMuted;
+            this.bgm.setMute(this.isMuted);
+            this.muteButton.setTexture(this.isMuted ? 'mute' : 'unmute');
+        });
+        this.add.rectangle(400, 580, 800, 200, 0x3fa9f5).setDepth(-1); // вода
+        clouds = this.add.group();
+        crocs = this.physics.add.group();
+        bombs = this.physics.add.group();
+
+        goose = this.physics.add.sprite(400, 100, 'goose').setScale(0.2).setImmovable(true);
+
+        scoreText = this.add.text(10, 10, 'Score: 0', { font: '20px Arial', fill: '#000' });
+        missesText = this.add.text(10, 35, 'Misses: 0', { font: '20px Arial', fill: '#000' });
+        gameOverText = this.add.text(200, 300, '', { font: '32px Arial', fill: '#f00' });
+
+        this.input.keyboard.on('keydown-SPACE', () => {
+            if (gameOver) return restart.call(this);
+            let bomb = bombs.create(goose.x, goose.y + 40, 'bomb').setScale(0.5);
+            bomb.setVelocityY(300);
+        });
+
+        this.time.addEvent({ delay: 1500, callback: spawnCloud, callbackScope: this, loop: true });
+        this.time.addEvent({ delay: 1000, callback: spawnCroc, callbackScope: this, loop: true });
+
+        this.physics.add.overlap(bombs, crocs, hitCroc, null, this);
+        this.physics.world.setBoundsCollision(true, true, true, false);
+    }
+
+    function update() {
+        clouds.children.iterate(cloud => {
+            if (!cloud) return;
+            cloud.x -= cloud.speed;
+            if (cloud.x < -cloud.displayWidth) cloud.destroy();
+        });
+
+        crocs.getChildren().forEach(croc => {
+            if (croc.active && croc.x + croc.displayWidth < 0) {
+                croc.destroy();
+                misses++;
+                missesText.setText('Misses: ' + misses);
+                if (misses >= 3) endGame();
+            }
+        });
+
+        bombs.children.iterate(bomb => {
+            if (!bomb) return;
+            if (bomb.y > 600) {
+                bomb.destroy();
+                misses++;
+                missesText.setText('Misses: ' + misses);
+                if (misses >= 3) endGame();
+                missesText.setText('Misses: ' + misses);
+                if (misses >= 3) endGame();
+            }
+        });
+    }
+
+    function spawnCloud() {
+        const y = 30 + Math.random() * 150;
+        const scale = Math.random() < 0.2 ? 0.4 : 0.2;
+        const cloud = this.add.image(900 + Math.random() * 100, y, 'cloud').setScale(scale).setDepth(-1);
+        cloud.speed = 1 + Math.random() * 1.5;
+        clouds.add(cloud);
+    }
+
+    function spawnCroc() {
+        const visibleCrocs = crocs.getChildren().filter(c => c.active);
+        // убираем ограничение по активным, разрешаем спаун до 5 сразу
+        const existing = crocs.getChildren().filter(c => c.active);
+        const toSpawn = 5 - existing.length;
+        if (toSpawn <= 0) return;
+
+        let spawned = 0;
+
+        // пробуем до 10 раз найти непересекающееся место
+        for (let i = 0; i < 50 && spawned < toSpawn; i++) {
+            const x = 900 + Phaser.Math.Between(0, 200);
+            const overlapped = crocs.getChildren().some(existing => Math.abs(existing.x - x) < 130);
+            if (!overlapped) {
+                const croc = crocs.create(x, 560, 'croc');
+                croc.setImmovable(true);
+                croc.body.allowGravity = false;
+                croc.setDisplaySize(120, 40);
+                croc.setSize(120, 40);
+                croc.setVelocityX(-Phaser.Math.Between(50, 100));
+                // убираем отскок и границы, чтобы крокодилы уплывали
+                // croc.setCollideWorldBounds(true);
+                // croc.setBounce(1);
+                return;
+            }
+        }}
+
+    function hitCroc(bomb, croc) {
+        bomb.destroy();
+        croc.destroy();
+        score++;
+        scoreText.setText('Score: ' + score);
+    }
+
+    function endGame() {
+        const scene = game.scene.keys.default;
+        scene.sys.game.renderer.snapshot((image) => {
+            const link = document.createElement('a');
+            link.download = `bombombini-score-${score}.png`;
+            link.href = image.src;
+            link.id = 'scoreImage';
+            document.body.appendChild(link);
+        });
+        gameOver = true;
+        gameOverText.setText(`Game Over!
+Final Score: ${score}
+Press SPACE to restart`);
+        gameOverText.setAlign('center');
+        gameOverText.setWordWrapWidth(400);
+
+        const url = location.href;
+        const text = encodeURIComponent(`I scored ${score} in Bombombini Gusini!`);
+        document.getElementById('shareText').textContent = `Share your score: ${score}`;
+        document.getElementById('tw').href = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+        document.getElementById('fb').href = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        document.getElementById('tg').href = `https://t.me/share/url?url=${url}&text=${text}`;
+        document.getElementById('wa').href = `https://api.whatsapp.com/send?text=${text}%20${url}`;
+        document.getElementById('ig').href = `https://www.instagram.com/?url=${url}`;
+        document.getElementById('tt').href = `https://www.tiktok.com/upload?text=${text}&url=${url}`;
+        document.getElementById('share').style.display = 'block';
+    }
+
+    function restart() {
+        document.getElementById('share').style.display = 'none';
+        if (!this.bgm) {
+            this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
+        }
+        this.bgm.play();
+        this.bgm.setMute(this.isMuted);
+
+        gameOver = false;
+        score = 0;
+        misses = 0;
+        scoreText.setText('Score: 0');
+        missesText.setText('Misses: 0');
+        gameOverText.setText('');
+        crocs.clear(true, true);
+        bombs.clear(true, true);
+        crocs.clear(true, true);
+        bombs.clear(true, true);
+    }
+</script>
+<div id="share" style="text-align:center; margin-top: 10px; display: none;">
+    <p id="shareText"></p>
+    <a id="tw" target="_blank">Twitter</a> |
+    <a id="fb" target="_blank">Facebook</a> |
+    <a id="tg" target="_blank">Telegram</a> |
+    <a id="wa" target="_blank">WhatsApp</a> |
+    <a id="ig" target="_blank">Instagram</a> |
+    <a id="tt" target="_blank">TikTok</a>
+</div>
+</body>
+</html>
