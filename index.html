@@ -58,6 +58,9 @@
             bomb.setVelocityY(300);
         }
         this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
+        this.input.once('pointerdown', () => {
+            if (!this.bgm.isPlaying && !this.isMuted) this.bgm.play();
+        });
         this.bgm.play();
 
         this.isMuted = false;
