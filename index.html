@@ -18,8 +18,10 @@
 <script>
     const config = {
         type: Phaser.AUTO,
-        width: 800,
-        height: 600,
+        scale: {
+            mode: Phaser.Scale.RESIZE,
+            autoCenter: Phaser.Scale.CENTER_BOTH
+        },
         backgroundColor: '#87CEEB',
         background: null,
         physics: {
@@ -55,41 +57,35 @@
     function create() {
         function dropBomb() {
             let bomb = bombs.create(goose.x, goose.y + 40, 'bomb').setScale(0.5);
-            bomb.setVelocityY(300);
+            bomb.setVelocityY(600);
         }
         this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
-        this.input.once('pointerdown', () => {
-            if (!this.bgm.isPlaying && !this.isMuted) this.bgm.play();
-        });
         this.bgm.play();
 
         this.isMuted = false;
-        this.muteButton = this.add.image(770, 30, 'unmute').setInteractive().setScale(0.5).setScrollFactor(0);
+        this.muteButton = this.add.image(this.scale.width - 30, 30, 'unmute').setInteractive().setScale(0.5).setScrollFactor(0);
         this.muteButton.on('pointerdown', () => {
             this.isMuted = !this.isMuted;
             this.bgm.setMute(this.isMuted);
             this.muteButton.setTexture(this.isMuted ? 'mute' : 'unmute');
         });
-        this.add.rectangle(400, 580, 800, 200, 0x3fa9f5).setDepth(-1); // вода
+        this.add.rectangle(this.cameras.main.centerX, this.scale.height - 20, this.scale.width, 200, 0x3fa9f5).setDepth(-1); // вода
         clouds = this.add.group();
         crocs = this.physics.add.group();
         bombs = this.physics.add.group();
 
-        goose = this.physics.add.sprite(400, 100, 'goose').setScale(0.2).setImmovable(true);
+        goose = this.physics.add.sprite(this.cameras.main.centerX, 100, 'goose').setScale(0.2).setImmovable(true);
 
         scoreText = this.add.text(10, 10, 'Score: 0', { font: '20px Arial', fill: '#000' });
         missesText = this.add.text(10, 35, 'Misses: 0', { font: '20px Arial', fill: '#000' });
-        gameOverText = this.add.text(200, 300, '', { font: '32px Arial', fill: '#f00' });
+        gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, '', { font: '32px Arial', fill: '#f00' });
 
         this.input.keyboard.on('keydown-SPACE', () => {
             if (gameOver) return restart.call(this);
             dropBomb.call(this);
         });
 
-        this.input.on('pointerdown', () => {
-            if (gameOver) return restart.call(this);
-            dropBomb.call(this);
-        });
+
 
         this.time.addEvent({ delay: 1500, callback: spawnCloud, callbackScope: this, loop: true });
         this.time.addEvent({ delay: 1000, callback: spawnCroc, callbackScope: this, loop: true });
@@ -116,7 +112,7 @@
 
         bombs.children.iterate(bomb => {
             if (!bomb) return;
-            if (bomb.y > 600) {
+            if (bomb.y > this.scale.height) {
                 bomb.destroy();
                 misses++;
                 missesText.setText('Misses: ' + misses);
@@ -130,7 +126,7 @@
     function spawnCloud() {
         const y = 30 + Math.random() * 150;
         const scale = Math.random() < 0.2 ? 0.4 : 0.2;
-        const cloud = this.add.image(900 + Math.random() * 100, y, 'cloud').setScale(scale).setDepth(-1);
+        const cloud = this.add.image(this.scale.width + Math.random() * 100, y, 'cloud').setScale(scale).setDepth(-1);
         cloud.speed = 1 + Math.random() * 1.5;
         clouds.add(cloud);
     }
@@ -146,15 +142,15 @@
 
         // пробуем до 10 раз найти непересекающееся место
         for (let i = 0; i < 50 && spawned < toSpawn; i++) {
-            const x = 900 + Phaser.Math.Between(0, 200);
+            const x = this.scale.width + Phaser.Math.Between(0, 200);
             const overlapped = crocs.getChildren().some(existing => Math.abs(existing.x - x) < 130);
             if (!overlapped) {
-                const croc = crocs.create(x, 560, 'croc');
+                const croc = crocs.create(x, this.scale.height - 60, 'croc');
                 croc.setImmovable(true);
                 croc.body.allowGravity = false;
                 croc.setDisplaySize(120, 40);
                 croc.setSize(120, 40);
-                croc.setVelocityX(-Phaser.Math.Between(50, 100));
+                croc.setVelocityX(-Phaser.Math.Between(100, 200));
                 // убираем отскок и границы, чтобы крокодилы уплывали
                 // croc.setCollideWorldBounds(true);
                 // croc.setBounce(1);
@@ -183,6 +179,7 @@
 Final Score: ${score}
 Press SPACE to restart`);
         gameOverText.setAlign('center');
+        gameOverText.setOrigin(0.5);
         gameOverText.setWordWrapWidth(400);
 
         const url = location.href;
