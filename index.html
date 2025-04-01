@@ -53,6 +53,10 @@
     }
 
     function create() {
+        function dropBomb() {
+            let bomb = bombs.create(goose.x, goose.y + 40, 'bomb').setScale(0.5);
+            bomb.setVelocityY(300);
+        }
         this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
         this.bgm.play();
 
@@ -76,8 +80,12 @@
 
         this.input.keyboard.on('keydown-SPACE', () => {
             if (gameOver) return restart.call(this);
-            let bomb = bombs.create(goose.x, goose.y + 40, 'bomb').setScale(0.5);
-            bomb.setVelocityY(300);
+            dropBomb.call(this);
+        });
+
+        this.input.on('pointerdown', () => {
+            if (gameOver) return restart.call(this);
+            dropBomb.call(this);
         });
 
         this.time.addEvent({ delay: 1500, callback: spawnCloud, callbackScope: this, loop: true });
