@@ -354,8 +354,17 @@ Press SPACE or RETRY to restart`);
             const btn = document.getElementById('dropButton');
             btn.textContent = TEXT.retry;
             btn.style.display = 'block';
-            btn.onclick = () => restart.call(scene);
-        }
+            btn.onclick = () => {
+                const modalEl = document.getElementById('donateModal');
+                if (modalEl.classList.contains('show')) {
+                    bootstrap.Modal.getInstance(modalEl).hide();
+                    modalEl.addEventListener('hidden.bs.modal', () => {
+                        restart.call(scene);
+                    }, { once: true });
+                } else {
+                    restart.call(scene);
+                }
+            };        }
     }
 
     function restart() {
