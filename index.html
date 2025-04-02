@@ -40,6 +40,11 @@
             box-sizing: border-box;
             word-break: break-word;
         }
+
+        .modal-backdrop {
+            background-color: transparent !important;
+        }
+
         #dropButton:hover {
             transform: scale(1.05);
         }
@@ -54,7 +59,67 @@
     <div id="gameContainer"></div>
 </div>
 <button id="dropButton" class="btn btn-danger w-100 text-center shadow" style="display: none; font-size: 64px; padding: 30px; cursor: pointer; white-space: normal;">💣 DROP BOMB</button>
+
+<!-- Donate Modal -->
+<div class="modal fade" id="donateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center">
+            <div class="modal-header">
+                <h5 class="modal-title w-100">Support Bombombini Gusini 💣🪿</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Enjoying the chaos? Help me build more meme-fueled games!
+                <br><br>
+                <img src="hamster.gif" alt="hamster" class="img-fluid mb-3" style="max-height: 200px;">
+                <a href="https://buymeacoffee.com/aratar" target="_blank" class="btn btn-warning btn-lg mb-3">☕ Buy me a coffee</a>
+                <div class="form-check text-center">
+                    <input class="form-check-input" type="checkbox" value="" id="noShowAgain">
+                    <label class="form-check-label" for="noShowAgain">
+                        Don't show again
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
+    let gamesPlayed = 0;
+    let donateModalDismissed = false;
+
+    function maybeShowDonateModal() {
+        const skip = localStorage.getItem('skipDonateModal');
+        if (!skip && !donateModalDismissed && gamesPlayed > 0 && gamesPlayed % 2 === 0) {
+            const modal = new bootstrap.Modal(document.getElementById('donateModal'));
+            modal.show();
+
+            const checkbox = document.getElementById('noShowAgain');
+            checkbox.checked = false;
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    localStorage.setItem('skipDonateModal', '1');
+                }
+            });
+
+            const modalEl = document.getElementById('donateModal');
+            modalEl.addEventListener('hidden.bs.modal', () => {
+                donateModalDismissed = true;
+            }, { once: true });
+        }
+    }
+
+    // Где-то после завершения игры:
+    function endGameModal() {
+        // твоя логика
+        gamesPlayed++;
+        maybeShowDonateModal();
+    }
+
+
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     const TEXT = {
@@ -266,6 +331,8 @@
     }
 
     function endGame() {
+        endGameModal();
+
         const scene = game.scene.keys.default;
         scene.sys.game.renderer.snapshot((image) => {
             const link = document.createElement('a');
