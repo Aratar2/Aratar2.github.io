@@ -141,7 +141,7 @@
         goose = this.physics.add.sprite(this.cameras.main.centerX, 140, 'goose').setScale(SETTINGS.gooseScale).setImmovable(true);
 
         scoreText = this.add.text(10, 10, 'Score: 0', { font: `${SETTINGS.fontSize}px Arial`, fill: '#000' });
-        missesText = this.add.text(10, 35, 'Misses: 0', { font: '20px Arial', fill: '#000' });
+        missesText = this.add.text(10, 35, '\nMisses: 0', { font: '20px Arial', fill: '#000' });
         gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, '', { font: `${SETTINGS.gameOverFontSize}px Arial`, fill: '#f00' });
 
         this.input.keyboard.on('keydown-SPACE', () => {
@@ -179,7 +179,7 @@
             if (croc.active && croc.x + croc.displayWidth < 0) {
                 croc.destroy();
                 misses++;
-                missesText.setText('Misses: ' + misses);
+                missesText.setText('\nMisses: ' + misses);
                 if (misses >= 3) endGame();
             }
         });
@@ -189,9 +189,9 @@
             if (bomb.y > this.scale.height) {
                 bomb.destroy();
                 misses++;
-                missesText.setText('Misses: ' + misses);
+                missesText.setText('\nMisses: ' + misses);
                 if (misses >= 3) endGame();
-                missesText.setText('Misses: ' + misses);
+                missesText.setText('\nMisses: ' + misses);
                 if (misses >= 3) endGame();
             }
         });
@@ -285,7 +285,7 @@ Press SPACE or RETRY to restart`);
         score = 0;
         misses = 0;
         scoreText.setText('Score: 0');
-        missesText.setText('Misses: 0');
+        missesText.setText('\nMisses: 0');
         gameOverText.setText('');
         crocs.clear(true, true);
         bombs.clear(true, true);
