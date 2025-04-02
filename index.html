@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <title>Bombombini Gusini</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        body {
+        html, body {
             margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Press Start 2P', cursive;
         }
         canvas {
             display: block;
@@ -16,12 +21,22 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow: hidden;
         }
         #dropButton {
             width: 100%;
-            font-size: 72px;
-            padding: 10px;
+            max-width: 100vw;
+            font-size: 64px;
+            padding: 30px;
             box-sizing: border-box;
+            word-break: break-word;
+        }
+        #dropButton:hover {
+            transform: scale(1.05);
+        }
+        #dropButton:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
     </style>
 </head>
@@ -29,6 +44,7 @@
 <div id="wrapper">
     <div id="gameContainer"></div>
 </div>
+<button id="dropButton" class="btn btn-danger w-100 text-center shadow" style="display: none; font-size: 64px; padding: 30px; cursor: pointer; white-space: normal;">💣 DROP BOMB</button>
 <script>
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -103,7 +119,7 @@
     }
 
     function create() {
-        const introText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 100, isMobile ? 'Tap 💣 to play' : 'Press SPACE to play', {
+        const introText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, isMobile ? 'Tap 💣 to play' : 'Press SPACE to play', {
             font: `${SETTINGS.fontSize}px Arial`,
             fill: '#000',
             backgroundColor: '#fff',
@@ -293,7 +309,5 @@ Press SPACE or RETRY to restart`);
         bombs.clear(true, true);
     }
 </script>
-
-<button id="dropButton" style="display:none; width: 100%; font-size: 72px; padding: 10px;">💣 DROP BOMB</button>
 </body>
 </html>
