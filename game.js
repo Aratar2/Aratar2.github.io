@@ -1,5 +1,3 @@
-
-
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 const TEXT = {
@@ -20,12 +18,12 @@ const SETTINGS = {
     fontSize: isMobile ? 42 : 32,
     gameOverFontSize: isMobile ? 58 : 48
 };
+
 const gameHeight = isMobile ? window.innerHeight * 0.5 : window.innerHeight;
 
 const config = {
     parent: 'gameContainer',
     type: Phaser.AUTO,
-
     width: window.innerWidth,
     height: gameHeight,
     scale: {
@@ -33,7 +31,6 @@ const config = {
         autoCenter: Phaser.Scale.CENTER_HORIZONTALLY
     },
     backgroundColor: '#87CEEB',
-    background: null,
     physics: {
         default: 'arcade',
         arcade: {
@@ -72,17 +69,26 @@ function dropBomb() {
     bomb.setVelocityY(SETTINGS.bombSpeed);
 }
 
+function setupDropButton(scene) {
+    const dropBtn = document.getElementById('dropButton');
+    dropBtn.style.display = 'block';
+    dropBtn.textContent = gameOver ? TEXT.retry : TEXT.drop;
+    dropBtn.onclick = () => {
+        if (gameOver) return restart.call(scene);
+        dropBomb.call(scene);
+    };
+}
+
 function create() {
-    const introText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, isMobile ? 'Tap 💣 to play' : 'Press SPACE to play', {
+    const introText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, TEXT.intro, {
         font: `${SETTINGS.fontSize}px Arial`,
         fill: '#000',
         backgroundColor: '#fff',
         padding: { x: 10, y: 5 }
     }).setOrigin(0.5);
 
-    this.time.delayedCall(2000, () => {
-        introText.destroy();
-    });
+    this.time.delayedCall(2000, () => introText.destroy());
+
     this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
     this.bgm.play();
 
@@ -91,19 +97,11 @@ function create() {
     this.muteButton.on('pointerdown', () => {
         this.isMuted = !this.isMuted;
         this.bgm.setMute(this.isMuted);
-
-        if (isMobile) {
-            const dropBtn = document.getElementById('dropButton');
-            dropBtn.textContent = TEXT.drop;
-            dropBtn.onclick = () => {
-                if (gameOver) return restart.call(window.game.scene.keys.default);
-                dropBomb();
-            };
-        }
         this.muteButton.setTexture(this.isMuted ? 'mute' : 'unmute');
     });
-    const waterY = isMobile ? this.scale.height - 20 : this.scale.height - 20;
-    this.add.rectangle(this.cameras.main.centerX, waterY, this.scale.width, 200, 0x3fa9f5).setDepth(-1); // вода
+
+    this.add.rectangle(this.cameras.main.centerX, this.scale.height - 20, this.scale.width, 200, 0x3fa9f5).setDepth(-1);
+
     clouds = this.add.group();
     crocs = this.physics.add.group();
     bombs = this.physics.add.group();
@@ -112,24 +110,17 @@ function create() {
 
     scoreText = this.add.text(10, 10, 'Score: 0', { font: `${SETTINGS.fontSize}px Arial`, fill: '#000' });
     missesText = this.add.text(10, 35, '\nMisses: 0', { font: '20px Arial', fill: '#000' });
-    gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, '', { font: `${SETTINGS.gameOverFontSize}px Arial`, fill: '#f00' });
+    gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, '', {
+        font: `${SETTINGS.gameOverFontSize}px Arial`,
+        fill: '#f00'
+    });
 
     this.input.keyboard.on('keydown-SPACE', () => {
         if (gameOver) return restart.call(this);
         dropBomb.call(this);
     });
 
-    if (isMobile) {
-        const dropBtn = document.getElementById('dropButton');
-        dropBtn.style.display = 'block';
-        dropBtn.textContent = '💣 DROP BOMB';
-        dropBtn.onclick = () => {
-            if (gameOver) return restart.call(this);
-            dropBomb.call(this);
-        };
-    }
-
-
+    if (isMobile) setupDropButton(this);
 
     this.time.addEvent({ delay: 1500, callback: spawnCloud, callbackScope: this, loop: true });
     this.time.addEvent({ delay: 1000, callback: spawnCroc, callbackScope: this, loop: true });
@@ -161,8 +152,6 @@ function update() {
             misses++;
             missesText.setText('\nMisses: ' + misses);
             if (misses >= 3) endGame();
-            missesText.setText('\nMisses: ' + misses);
-            if (misses >= 3) endGame();
         }
     });
 }
@@ -176,32 +165,26 @@ function spawnCloud() {
 }
 
 function spawnCroc() {
-    const visibleCrocs = crocs.getChildren().filter(c => c.active);
-    // убираем ограничение по активным, разрешаем спаун до 5 сразу
     const existing = crocs.getChildren().filter(c => c.active);
     const toSpawn = 5 - existing.length;
     if (toSpawn <= 0) return;
 
     let spawned = 0;
-
-    // пробуем до 10 раз найти непересекающееся место
     for (let i = 0; i < 50 && spawned < toSpawn; i++) {
         const x = this.scale.width + Phaser.Math.Between(0, 200);
         const overlapped = crocs.getChildren().some(existing => Math.abs(existing.x - x) < 130);
         if (!overlapped) {
-            const crocY = isMobile ? this.scale.height - 60 : this.scale.height - 60;
+            const crocY = this.scale.height - 60;
             const croc = crocs.create(x, crocY, 'croc');
             croc.setImmovable(true);
             croc.body.allowGravity = false;
             croc.setDisplaySize(SETTINGS.crocWidth, SETTINGS.crocHeight);
             croc.setSize(SETTINGS.crocWidth, SETTINGS.crocHeight);
             croc.setVelocityX(-Phaser.Math.Between(SETTINGS.crocSpeedMin, SETTINGS.crocSpeedMax));
-            // убираем отскок и границы, чтобы крокодилы уплывали
-            // croc.setCollideWorldBounds(true);
-            // croc.setBounce(1);
-            return;
+            spawned++;
         }
-    }}
+    }
+}
 
 function hitCroc(bomb, croc) {
     bomb.destroy();
@@ -211,51 +194,17 @@ function hitCroc(bomb, croc) {
 }
 
 function endGame() {
-    endGameModal();
-
-    const scene = game.scene.keys.default;
-    scene.sys.game.renderer.snapshot((image) => {
-        const link = document.createElement('a');
-        link.download = `bombombini-score-${score}.png`;
-        link.href = image.src;
-        link.id = 'scoreImage';
-        document.body.appendChild(link);
-    });
+    endGameModal(misses); // Предполагается, что это внешняя функция
     gameOver = true;
-    gameOverText.setText(`Game Over!
-Final Score: ${score}
-Press SPACE or RETRY to restart`);
+    gameOverText.setText(`Game Over!\nFinal Score: ${score}\nPress SPACE or RETRY to restart`);
     gameOverText.setAlign('center');
     gameOverText.setOrigin(0.5);
     gameOverText.setWordWrapWidth(400);
 
-
-    if (isMobile) {
-        const btn = document.getElementById('dropButton');
-        btn.textContent = TEXT.retry;
-        btn.style.display = 'block';
-        btn.onclick = () => {
-            const modalEl = document.getElementById('donateModal');
-            if (modalEl.classList.contains('show')) {
-                bootstrap.Modal.getInstance(modalEl).hide();
-                modalEl.addEventListener('hidden.bs.modal', () => {
-                    restart.call(scene);
-                }, { once: true });
-            } else {
-                restart.call(scene);
-            }
-        };        }
+    if (isMobile) setupDropButton(window.game.scene.keys.default);
 }
 
 function restart() {
-    if (isMobile) {
-        const dropBtn = document.getElementById('dropButton');
-        dropBtn.textContent = '💣 DROP BOMB';
-        dropBtn.onclick = () => {
-            if (gameOver) return restart.call(this);
-            dropBomb.call(this);
-        };
-    }
     if (!this.bgm) {
         this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
     }
@@ -268,8 +217,9 @@ function restart() {
     scoreText.setText('Score: 0');
     missesText.setText('\nMisses: 0');
     gameOverText.setText('');
+
     crocs.clear(true, true);
     bombs.clear(true, true);
-    crocs.clear(true, true);
-    bombs.clear(true, true);
+
+    if (isMobile) setupDropButton(this);
 }

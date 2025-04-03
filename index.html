@@ -93,28 +93,25 @@
 
     function maybeShowDonateModal() {
         const skip = localStorage.getItem('skipDonateModal');
-        if (!skip && !donateModalDismissed && gamesPlayed > 0 && gamesPlayed % 2 === 0) {
+        if (!skip && gamesPlayed > 0 && gamesPlayed % 2 === 0) {
             const modal = new bootstrap.Modal(document.getElementById('donateModal'));
             modal.show();
 
             const checkbox = document.getElementById('noShowAgain');
             checkbox.checked = false;
-            checkbox.addEventListener('change', () => {
+            checkbox.onchange = () => {
                 if (checkbox.checked) {
                     localStorage.setItem('skipDonateModal', '1');
                 }
-            });
-
-            const modalEl = document.getElementById('donateModal');
-            modalEl.addEventListener('hidden.bs.modal', () => {
-                donateModalDismissed = true;
-            }, { once: true });
+            };
         }
     }
 
-    function endGameModal() {
-        gamesPlayed++;
-        maybeShowDonateModal();
+    function endGameModal(misses) {
+       if (misses === 3) {
+           gamesPlayed++;
+           maybeShowDonateModal();
+        }
     }
 </script>
 
